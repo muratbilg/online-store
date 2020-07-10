@@ -2,6 +2,8 @@ package com.mycompany.store.service;
 
 import com.mycompany.store.domain.ProductOrder;
 import com.mycompany.store.repository.ProductOrderRepository;
+import com.mycompany.store.security.AuthoritiesConstants;
+import com.mycompany.store.security.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +49,14 @@ public class ProductOrderService {
     @Transactional(readOnly = true)
     public Page<ProductOrder> findAll(Pageable pageable) {
         log.debug("Request to get all ProductOrders");
-        return productOrderRepository.findAll(pageable);
+        if (SecurityUtils.isCurrentUserInRole
+            (AuthoritiesConstants.ADMIN)) {
+            return productOrderRepository.findAll(pageable);
+        } else
+            return productOrderRepository.findAllByCustomerUserLogin( //select * from product_order po cross join customer c cross join jhi_user u where po.customer_id=c.id and c.user_id=u.id and u.login=:login
+                SecurityUtils.getCurrentUserLogin().get(),
+                pageable
+            );
     }
 
 
@@ -60,7 +69,15 @@ public class ProductOrderService {
     @Transactional(readOnly = true)
     public Optional<ProductOrder> findOne(Long id) {
         log.debug("Request to get ProductOrder : {}", id);
-        return productOrderRepository.findById(id);
+        if (SecurityUtils.isCurrentUserInRole
+            (AuthoritiesConstants.ADMIN)) {
+            return productOrderRepository.findById(id);
+        } else
+            return productOrderRepository.
+                findOneByIdAndCustomerUserLogin(
+                    id,
+                    SecurityUtils.getCurrentUserLogin().get()
+                );
     }
 
     /**
